@@ -1,0 +1,118 @@
+<html>
+	
+	<head>
+		<title>Tom_The_Geek - WebSocket console</title>
+		
+		<style>
+			ul {
+				list-style: none;
+			}
+		</style>
+	</head>
+	
+	<body>
+		<div id="settings" style="display: block;">
+			<input id="address" type="text" onkeypress="onkey(event)">
+			<input id="username" type="text" onkeypress="onkey(event)">
+			<button onclick="connect()">Connect!</button>
+		</div>
+		
+		<div id="console" style="display: none;">
+			<select id="packetType">
+				<option value="start_game">start_game</option>
+				<option value="play_card">play_card</option>
+			</select>
+
+			<input id="messageIn" type="text" onkeypress="onkey(event)">
+			<button onclick="send()">Send!</button>
+			<ul id="messages"></ul>
+		</div>
+		
+		<script>
+			const messages = document.getElementById("messages")
+			const input = document.getElementById("messageIn")
+			const settings = document.getElementById("settings")
+			const addressBox = document.getElementById("address")
+			const consoleElement = document.getElementById("console")
+			const usernameBox = document.getElementById("username")
+			const packetTypeBox = document.getElementById("packetType")
+			ws = null;
+			addressBox.value = "localhost:7070/ws"
+
+			function onkey(event) {
+				if (event.key == "Enter" || event.which == 13 || event.keyCode == 13) {
+					if (ws) {
+						send()
+					} else {
+						connect()
+					}
+				}
+			}
+
+			function addMessage(msg) {
+				var ele = document.createElement("li");
+				ele.innerHTML = msg;
+				messages.appendChild(ele);
+			}
+
+			function connect() {
+				settings.style.display = "none"
+				consoleElement.style.display = "block"
+			
+				ws = new WebSocket("ws://" + addressBox.value)
+				ws.onopen = function(event) {
+					addMessage("Connected!")
+					sendObject({
+						type: "login",
+						name: usernameBox.value
+					})
+				}
+
+				ws.onerror = function(event) {
+					addMessage("Error: " + event.toString())
+				}
+
+				ws.onmessage = function(event) {
+					if (event.data.text) {
+						event.data.text().then(txt => addMessage("<= " + txt))
+					} else {
+						addMessage("<= " + event.data)
+					}
+				}
+
+				ws.onclose = function(event) {
+					addMessage("Closed! Code: " + event.code + " Message: " + event.reason)
+				}
+			}
+			
+			function startgame() {
+				sendObject({
+					type: "start_game"
+				})
+			}
+			
+			function send() {
+				var rawMessage = input.value
+				var msg = {}
+				if (rawMessage !== "") {
+					msg = JSON.parse(rawMessage)
+				}
+				var packet = {
+					"type": packetTypeBox.value
+				}
+				
+				sendObject(Object.assign({}, packet, msg))
+			}
+			
+			function sendRaw(m) {
+				addMessage("=> " + m)
+				ws.send(m)
+				input.value = ""
+			}
+			
+			function sendObject(msg) {
+				sendRaw(JSON.stringify(msg))
+			}
+		</script>
+	</body>
+</html>
