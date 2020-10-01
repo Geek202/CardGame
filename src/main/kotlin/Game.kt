@@ -83,6 +83,12 @@ class Game {
 
     private fun notifyStateUpdate() {
         // reduce memory allocation by defining the object once and reusing in the loop
+        val msg = buildStatusPacket()
+
+        broadcastPacket(msg)
+    }
+
+    private fun buildStatusPacket(): JsonObject {
         val msg = JsonObject()
         msg.addProperty("type", "game_state")
         msg.addProperty("host", hostUsername)
@@ -91,8 +97,7 @@ class Game {
         val limbo = JsonArray()
         limboCards.stream().map { it.toJson() }.forEach(limbo::add)
         msg.add("limbo_cards", limbo)
-
-        broadcastPacket(msg)
+        return msg
     }
 
     private fun broadcastPacket(msg: JsonObject) {
@@ -185,8 +190,8 @@ class Game {
             if (currentWinner == null)
                 currentWinner = player
 
-            val winningCard = currentWinner.currentCard!!
-            val currentCard = player.currentCard!!
+            val winningCard = currentWinner.heldCard()
+            val currentCard = player.heldCard()
             if (currentCard.isBetter(winningCard)) {
                 currentWinner = player
             }
@@ -238,6 +243,13 @@ class Game {
         res.addProperty("host", hostUsername)
 
         player.sendPacket(res)
+
+        val updatePacket = buildStatusPacket()
+        for (p in players) {
+            if (p.name != name) {
+                p.sendPacket(updatePacket)
+            }
+        }
     }
 }
 

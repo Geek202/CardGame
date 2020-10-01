@@ -9,6 +9,9 @@ plugins {
 group = "me.geek.tom"
 version = "1.0-SNAPSHOT"
 
+application {
+	mainClassName = "me.geek.tom.cardgame.GameKt"
+}
 
 repositories {
     mavenCentral()

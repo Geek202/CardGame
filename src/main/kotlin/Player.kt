@@ -15,18 +15,22 @@ class Player(val name: String, private val game: Game, private val channel: Chan
     var score = 0
         private set
 
-    var currentCard: Card? = null
+    var currentCard: Int = -1
         private set
+
+    fun heldCard(): Card {
+        return hand[currentCard]
+    }
 
     fun sendPacket(msg: Any) {
         channel.writeAndFlush(TextWebSocketFrame(GSON.toJson(msg)))
     }
 
     fun handlePlayCard(cardNum: Int): Boolean {
-        if (currentCard != null || cardNum < 0 || cardNum >= hand.size)
+        if (currentCard != -1 || cardNum < 0 || cardNum >= hand.size)
             return false
 
-        currentCard = hand.removeAt(cardNum)
+        currentCard = cardNum
         syncData()
         return true
     }
@@ -51,13 +55,7 @@ class Player(val name: String, private val game: Game, private val channel: Chan
         msg.addProperty("type", "player_sync")
         msg.add("hand", serialisedHand)
         msg.addProperty("score", score)
-        msg.add("played_card",
-            if (currentCard == null) {
-                JsonObject()
-            } else {
-                currentCard?.toJson()
-            }
-        )
+        msg.addProperty("played_card", currentCard)
 
         sendPacket(msg)
     }
@@ -67,8 +65,8 @@ class Player(val name: String, private val game: Game, private val channel: Chan
     }
 
     fun takeCurrentCard(): Card {
-        val ret = currentCard!!
-        currentCard = null
+        val ret = hand.removeAt(currentCard)
+        currentCard = -1
         syncData()
         return ret
     }
